@@ -1,22 +1,45 @@
 version: '3'
 
 services:
-    nginx:
-        image: nginx:1.19.6-alpine
-        container_name: nginx
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - ./docker/nginx/sites:/etc/nginx/conf.d
-            - ./docker/certbot/conf:/etc/letsencrypt
-            - ./docker/certbot/www:/var/www/certbot
-        command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./docker/certbot/conf:/etc/letsencrypt
+      - ./docker/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
-    certbot:
-        image: certbot/certbot
-        container_name: certbot
-        volumes:
-            - ./docker/certbot/conf:/etc/letsencrypt
-            - ./docker/certbot/www:/var/www/certbot
-        entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  nginx:
+    image: nginx:1.19.6-alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/sites:/etc/nginx/conf.d
+      - ./docker/certbot/conf:/etc/letsencrypt
+      - ./docker/certbot/www:/var/www/certbot
+    networks:
+      - prestashopNet
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./docker/mysql/dbData:/var/lib/mysql
+    networks:
+      - prestashopNet
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+networks:
+  prestashopNet:
+    driver: "bridge"

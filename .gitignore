@@ -1,1 +1,5 @@
-docker/certbot/conf/*
+.env
+.idea/*
+
+/docker/certbot/conf/*
+/docker/mysql/dbData/*
