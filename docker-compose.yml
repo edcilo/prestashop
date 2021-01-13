@@ -13,6 +13,9 @@ services:
     image: nginx:1.19.6-alpine
     container_name: nginx
     restart: always
+    depends_on:
+      - php
+      - mysql
     ports:
       - "80:80"
       - "443:443"
@@ -20,9 +23,22 @@ services:
       - ./docker/nginx/sites:/etc/nginx/conf.d
       - ./docker/certbot/conf:/etc/letsencrypt
       - ./docker/certbot/www:/var/www/certbot
+      - ./prestashop:/var/www/prestashop
     networks:
       - prestashopNet
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  php:
+    build: docker/php
+    container_name: php
+    restart: always
+    depends_on:
+      - mysql
+    volumes:
+      - ./prestashop:/var/www/prestashop
+      - ./docker/php/conf/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - prestashopNet
 
   mysql:
     image: mysql:5.7
